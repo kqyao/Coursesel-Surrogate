@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TARGET_COURSE_LIST = ['VE475']
+TARGET_COURSE_LIST = ['VE496SU2018-2']
 COURSESEL_URL = 'http://coursesel.umji.sjtu.edu.cn/welcome.action'
 JACCOUNT_CAPTCHA_URL = 'https://jaccount.sjtu.edu.cn/jaccount/captcha'
 JACCOUNT_POST_SUBMIT_URL = 'https://jaccount.sjtu.edu.cn/jaccount/ulogin'
@@ -139,7 +139,7 @@ def get_course_info(opener, course_code_list):
     #opener.open(FIND_ALL_ELECT_CLASS_NOTIFY_VACANCY_URL)
     return_dict = json.loads(coursesel_html)
     for lesson in return_dict['data']['lessonTasks']:
-        if lesson['courseShortName'] in course_code_list:
+        if lesson['lessonClassCode'] in course_code_list:
             student_num = int(lesson['studentNum'])
             max_num = int(lesson['maxNum'])
             if student_num < max_num:
