@@ -27,6 +27,7 @@ FIND_LESSON_TASKS_URL = 'http://coursesel.umji.sjtu.edu.cn/tpm/findLessonTasks_E
 FIND_ALL_ELECT_CLASS_NOTIFY_VACANCY_URL = 'http://coursesel.umji.sjtu.edu.cn/tpm/findAll_ElectClassNotifyVacancy.action?_t=1525875395329&jsonString=%7B%22electTurnId%22%3A%2201AC989B-0562-474D-8D0D-5C687C3DBBCF%22%2C%22studentId%22%3A%2277D0533B-BA71-4385-8878-65B78636C1C6%22%2C%22isClosed%22%3A%220%22%7D'
 DO_ELECT_POST_URL = 'http://coursesel.umji.sjtu.edu.cn/tpm/doElect_ElectTurn.action'
 X_CSRF_TOKEN = ''
+SELECT_COURSE_POST_SENT_TIMES = 0
 
 def _find_attr(attr_list, attr_name, attr_value):
     if (attr_name, attr_value) in attr_list:
@@ -114,6 +115,7 @@ def _login_jaccount_if_not(opener, page_html):
 
 def select_course(opener, elect_turn_id, lesson_task_id):
     global X_CSRF_TOKEN
+    global SELECT_COURSE_POST_SENT_TIMES
     if not X_CSRF_TOKEN:
         coursesel_html = opener.open(COURSESEL_URL).read().decode()
         X_CSRF_TOKEN = re.search(r'name="_csrf".*content="(.*)".*>', coursesel_html).group(1)
@@ -130,9 +132,11 @@ def select_course(opener, elect_turn_id, lesson_task_id):
     select_course_request = urllib.request.Request(DO_ELECT_POST_URL, post_form_data_encoded, post_header)
     opener.open(select_course_request)
     logger.info('select course post form sent')
+    SELECT_COURSE_POST_SENT_TIMES += 1
 
 
 def get_course_info(opener, course_code_list):
+    global SELECT_COURSE_POST_SENT_TIMES
     coursesel_html = opener.open(FIND_LESSON_TASKS_URL).read().decode()
     while _login_jaccount_if_not(opener, coursesel_html):
         coursesel_html = opener.open(FIND_LESSON_TASKS_URL).read().decode()
@@ -143,13 +147,15 @@ def get_course_info(opener, course_code_list):
             student_num = int(lesson['studentNum'])
             max_num = int(lesson['maxNum'])
             if student_num < max_num:
-                logger.info('S: {}, M: {}, Go and select the course {}!!!!!!!!!!!!!!!!!!'.format(student_num, max_num, lesson['courseShortName']))
+                logger.info('S: {}, M: {}, Go and select the course {}!!!!!!!!!!!!!!!!!! (Already: {})'.format(
+                    student_num, max_num, lesson['courseShortName'], SELECT_COURSE_POST_SENT_TIMES))
                 select_course(opener, lesson['electTurnId'], lesson['electTurnLessonTaskId'])
             else:
-                logger.info('S: {}, M: {}, Still no position in {}...'.format(student_num, max_num, lesson['courseShortName']))
+                logger.info('S: {}, M: {}, Still no position in {}... (Already: {})'.format(
+                    student_num, max_num, lesson['courseShortName'], SELECT_COURSE_POST_SENT_TIMES))
 
 
-def _main():
+def main():
     cookie = http.cookiejar.CookieJar()
     handler = urllib.request.HTTPCookieProcessor(cookie)
     opener = urllib.request.build_opener(handler)
@@ -167,6 +173,7 @@ def _main():
                 exit(-1)
             logger.warn('{} times remaining'.format(9 - error_times))
             error_times += 1
+            time.sleep(60)
 
 if __name__ == '__main__':
-    _main()
+    main()
