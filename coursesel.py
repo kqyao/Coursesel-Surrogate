@@ -90,7 +90,7 @@ def _login_jaccount_if_not(opener, page_html):
     if not jaccount_login_parser.is_login_page:
         logger.info('already login')
         return False
-    captcha_img_byte = opener.open(JACCOUNT_CAPTCHA_URL).read()
+    captcha_img_byte = opener.open(JACCOUNT_CAPTCHA_URL, timeout=60).read()
     with open('captcha.jpg', 'wb') as captcha_img:
         captcha_img.write(captcha_img_byte)
     jaccount_username = input('Please input jAccount username: ')
@@ -108,7 +108,7 @@ def _login_jaccount_if_not(opener, page_html):
     }
     post_form_data_encoded = urllib.parse.urlencode(post_form_data).encode('utf-8')
     jaccount_login_request = urllib.request.Request(JACCOUNT_POST_SUBMIT_URL, post_form_data_encoded)
-    opener.open(jaccount_login_request)
+    opener.open(jaccount_login_request, timeout=60)
     logger.info('login post form sent')
     return True
 
@@ -117,7 +117,7 @@ def select_course(opener, elect_turn_id, lesson_task_id):
     global X_CSRF_TOKEN
     global SELECT_COURSE_POST_SENT_TIMES
     if not X_CSRF_TOKEN:
-        coursesel_html = opener.open(COURSESEL_URL).read().decode()
+        coursesel_html = opener.open(COURSESEL_URL, timeout=60).read().decode()
         X_CSRF_TOKEN = re.search(r'name="_csrf".*content="(.*)".*>', coursesel_html).group(1)
         print(X_CSRF_TOKEN)
     post_course_info = {
@@ -130,17 +130,17 @@ def select_course(opener, elect_turn_id, lesson_task_id):
     post_form_data_encoded = urllib.parse.urlencode(post_form_data, doseq=True).encode('utf-8')
     post_header = {'X-CSRF-TOKEN': X_CSRF_TOKEN}
     select_course_request = urllib.request.Request(DO_ELECT_POST_URL, post_form_data_encoded, post_header)
-    opener.open(select_course_request)
+    opener.open(select_course_request, timeout=60)
     logger.info('select course post form sent')
     SELECT_COURSE_POST_SENT_TIMES += 1
 
 
 def get_course_info(opener, course_code_list):
     global SELECT_COURSE_POST_SENT_TIMES
-    coursesel_html = opener.open(FIND_LESSON_TASKS_URL).read().decode()
+    coursesel_html = opener.open(FIND_LESSON_TASKS_URL, timeout=60).read().decode()
     while _login_jaccount_if_not(opener, coursesel_html):
-        coursesel_html = opener.open(FIND_LESSON_TASKS_URL).read().decode()
-    #opener.open(FIND_ALL_ELECT_CLASS_NOTIFY_VACANCY_URL)
+        coursesel_html = opener.open(FIND_LESSON_TASKS_URL, timeout=60).read().decode()
+    #opener.open(FIND_ALL_ELECT_CLASS_NOTIFY_VACANCY_URL, timeout=60)
     return_dict = json.loads(coursesel_html)
     for lesson in return_dict['data']['lessonTasks']:
         if lesson['lessonClassCode'] in course_code_list:
