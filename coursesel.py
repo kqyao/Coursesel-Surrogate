@@ -17,14 +17,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Configs
 TARGET_COURSE_LIST = ['VE496SU2018-2']
+ENABLE_COURSE_SELECT = False
+
 COURSESEL_URL = 'http://coursesel.umji.sjtu.edu.cn/welcome.action'
 JACCOUNT_CAPTCHA_URL = 'https://jaccount.sjtu.edu.cn/jaccount/captcha'
 JACCOUNT_POST_SUBMIT_URL = 'https://jaccount.sjtu.edu.cn/jaccount/ulogin'
 # FIND_LESSON_TASKS_URL need to be changed every time
 FIND_LESSON_TASKS_URL = 'http://coursesel.umji.sjtu.edu.cn/tpm/findLessonTasks_ElectTurn.action?jsonString=%7B%22isToTheTime%22%3Atrue%2C%22electTurnId%22%3A%2201AC989B-0562-474D-8D0D-5C687C3DBBCF%22%2C%22loadCourseGroup%22%3Afalse%2C%22loadElectTurn%22%3Afalse%2C%22loadCourseType%22%3Afalse%2C%22loadCourseTypeCredit%22%3Afalse%2C%22loadElectTurnResult%22%3Afalse%2C%22loadStudentLessonTask%22%3Afalse%2C%22loadPrerequisiteCourse%22%3Afalse%2C%22lessonCalendarWeek%22%3Afalse%2C%22loadLessonCalendarConflict%22%3Afalse%2C%22loadTermCredit%22%3Afalse%2C%22loadLessonTask%22%3Atrue%2C%22loadDropApprove%22%3Afalse%2C%22loadElectApprove%22%3Afalse%7D'
-# Currently, FIND_ALL_ELECT_CLASS_NOTIFY_VACANCY_URL is useless, but let's add it to act like a web browser
-FIND_ALL_ELECT_CLASS_NOTIFY_VACANCY_URL = 'http://coursesel.umji.sjtu.edu.cn/tpm/findAll_ElectClassNotifyVacancy.action?_t=1525875395329&jsonString=%7B%22electTurnId%22%3A%2201AC989B-0562-474D-8D0D-5C687C3DBBCF%22%2C%22studentId%22%3A%2277D0533B-BA71-4385-8878-65B78636C1C6%22%2C%22isClosed%22%3A%220%22%7D'
 DO_ELECT_POST_URL = 'http://coursesel.umji.sjtu.edu.cn/tpm/doElect_ElectTurn.action'
 X_CSRF_TOKEN = ''
 SELECT_COURSE_POST_SENT_TIMES = 0
@@ -140,7 +141,6 @@ def get_course_info(opener, course_code_list):
     coursesel_html = opener.open(FIND_LESSON_TASKS_URL, timeout=60).read().decode()
     while _login_jaccount_if_not(opener, coursesel_html):
         coursesel_html = opener.open(FIND_LESSON_TASKS_URL, timeout=60).read().decode()
-    #opener.open(FIND_ALL_ELECT_CLASS_NOTIFY_VACANCY_URL, timeout=60)
     return_dict = json.loads(coursesel_html)
     for lesson in return_dict['data']['lessonTasks']:
         if lesson['lessonClassCode'] in course_code_list:
@@ -149,7 +149,9 @@ def get_course_info(opener, course_code_list):
             if student_num < max_num:
                 logger.info('S: {}, M: {}, Go and select the course {}!!!!!!!!!!!!!!!!!! (Already: {})'.format(
                     student_num, max_num, lesson['courseShortName'], SELECT_COURSE_POST_SENT_TIMES))
-                select_course(opener, lesson['electTurnId'], lesson['electTurnLessonTaskId'])
+                # Some notifier can be added here, such as set an alarm or send an email.
+                if ENABLE_COURSE_SELECT:
+                    select_course(opener, lesson['electTurnId'], lesson['electTurnLessonTaskId'])
             else:
                 logger.info('S: {}, M: {}, Still no position in {}... (Already: {})'.format(
                     student_num, max_num, lesson['courseShortName'], SELECT_COURSE_POST_SENT_TIMES))
